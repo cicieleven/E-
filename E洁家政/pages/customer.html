@@ -1,0 +1,396 @@
+<link rel="stylesheet" type="text/css" href="../bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="http://at.alicdn.com/t/font_1396507_ooc7b9xf55.css">
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.js"></script>
+<script>
+	// 后台接口
+	var baseURL = "http://134.175.100.63:6677";
+
+	// 初始化数据
+	function initData(){
+		var url = baseURL+"/customer/findAll";
+		$.get(url,function(result){
+			if (result.status === 200) {
+				// 先清空表单
+				$("#customer_tbl>tbody").empty();
+				// 追加一个tr
+				result.data.forEach(function(item){
+					$(`<tr>
+					<td><input type="checkbox" value="`+item.id+`"></td>
+					<td>`+item.realname+`</td>
+					<td>`+item.password+`</td>
+					<td>`+item.photo+`</td>
+					<td>`+item.telephone+`</td>
+
+					<td>
+						<a href="javascript:void(0);" class="btn_del">删除</a>
+						<a href="javascript:void(0);" class="btn_upd">修改</a>
+						<a href="javascript:void(0);" class="btn_msg">详情</a>
+					</td>
+				</tr>`).appendTo("#customer_tbl>tbody");
+				});
+			}else{
+				alert("服务器接口报错！");
+			}
+		});
+	}
+	
+	$(function(){
+		// 加载数据
+		initData();
+		// 为添加按钮绑定事件
+		$("#btn_add").click(function(){
+			$("#customerModal").modal("show");
+			$("#name_err span").addClass('name_err');
+			$("#password_err span").addClass('password_err');
+			$("#telephone_err span").addClass('telephone_err');
+		});
+		// 监听模态框关闭 重置输入框信息
+		$("#customerModal").on('hidden.bs.modal',function(e){
+			$(this).find("form")[0].reset();
+		});
+
+		// 保存顾客管理信息
+	// function submitCustomer(){
+		$("#btn_save").on('click',function(){
+			// 获取数据
+			var id = $("#customer_form input[name=id]").val();
+			console.log("获取的input"+id);
+			var realname = $("#customer_form input[name=realname]").val();
+			var password = $("#customer_form input[name=password]").val();
+			var telephone = $("#customer_form input[name=telephone]").val();
+			// 正则判断
+			var pattern_realname = /^[a-z]{1,}$/ig;
+			var pattern_password = /^\d{6,}$/ig;
+			var pattern_telephone = /^\d{7,11}$/ig;
+			var realname_res = pattern_realname.test(realname);
+			var password_res = pattern_password.test(password);
+			var telephone_res = pattern_telephone.test(telephone);
+			if (realname_res&&password_res&&telephone_res) {
+				if (id) {
+				// 如果id存在，修改
+				var data ={
+					id:id,
+					realname:realname,
+					password:password,
+					telephone:telephone
+				}
+				var url = baseURL + "/customer/saveOrUpdate";
+				$.post(url,data,function(result){
+					if (result.status === 200) {
+						alert("修改成功");
+						initData();
+					}else{
+						alert("修改失败");
+						initData();
+					}
+				});
+				// id = ' ';
+				$("#customerModal").modal("hide");
+			}else{
+					// 如果id不存在，插入新数据
+				var data = {
+					realname:realname,
+					password:password,
+					telephone:telephone
+				}
+				var url = baseURL + "/customer/saveOrUpdate";
+				$.post(url,data,function(result){
+					if (result.status === 200) {
+						alert("添加成功");
+						initData();
+					}else{
+						alert("添加失败");
+						initData();
+					}
+				});
+				$("#customerModal").modal("hide");
+				}
+			}else{
+				// 表单验证
+				if (!realname_res && !password_res && !telephone_res) {
+					$('#name_err span').removeClass('name_err');
+					$('#password_err span').removeClass('password_err');
+					$('#telephone_err span').removeClass('telephone_err');
+				}
+				if (!realname_res && !password_res) {
+					$('#name_err span').removeClass('name_err');
+					$('#password_err span').removeClass('password_err');
+				}
+				if (!password_res && !telephone_res) {
+					$('#password_err span').removeClass('password_err');
+					$('#telephone_err span').removeClass('telephone_err');
+				}
+				if (!realname_res && !telephone_res) {
+					$('#name_err span').removeClass('name_err');
+					$('#telephone_err span').removeClass('telephone_err');
+				}
+				if (!realname_res ) {
+					$('#name_err span').removeClass('name_err');
+				}
+				if (!password_res) {
+					$('#password_err span').removeClass('password_err');
+				}
+				if (!telephone_res) {
+					$('#telephone_err span').removeClass('telephone_err');
+				}
+			}
+			event.preventDefault();			
+		});
+
+		// 批量删除
+		$("#btn_batchdel").on("click",function(){
+			alert("确定批量删除？");
+			var ids = $(this).parents("tr").find("input").val();
+			batchdel(ids);
+		})
+
+		// 为删除、修改绑定事件
+		$("#customer_tbl > tbody").on("click","a",function(){
+			// 判断获取名绑定事件
+			switch(this.className){
+				// 删除
+				case "btn_del":
+					alert("确定删除？");
+					var id = $(this).parents("tr").find("input").val();
+					delById(id);
+		            $("#customerModal").modal("hide");
+		           break; 
+
+				case "btn_upd":
+					alert("确定修改？");
+					$("#customerModal").modal("show");
+					// 获取当前修改数据的信息
+					var id = $(this).parents("tr").find("td").find("input").val();
+					// console.log(id);
+					var realname = $(this).parents('tr').find('td:nth-child(2)').text();
+					var password = $(this).parents('tr').find('td:nth-child(3)').text();
+					var telephone = $(this).parents('tr').find('td:nth-child(5)').text();
+					
+					$("input[name=id]").val(id);
+					$("input[name=realname]").val(realname);
+					$("input[name=password]").val(password);
+					$("input[name=telephone]").val(telephone);
+					// 显示到模态框中
+					
+					break;
+			}
+			event.preventDefault();
+		});
+	});
+
+	// 关闭模态框
+	function closeModal(){
+		$(this).parents(".modal").modal("hide");
+	}
+	
+	// 关闭提示框
+	function closeAlert(){
+		$(this).parents('.alert').remove();
+	}
+
+	// 批量删除
+	function batchdel(){
+		var url = baseURL + "/customer/batchDelete";
+		var ids = $(':checkbox:checked').map(function(index,item){
+			return $(item).val();
+		}).toArray();
+		var data = '';
+		for(index in ids){
+			if (index == 0) {
+				data += 'ids=' + ids[index];
+			}else{
+				data += '&ids=' + ids[index];
+			}
+		}
+		$.post(url,data,function(result){
+			if (result.status === 200) {
+				alert(result.message);
+			}else{
+				alert("批量删除失败");
+			}
+		})
+	}
+
+	// 通过id删除信息
+	function delById(id){
+		var url = "/customer/deleteById";
+		var data = {id:id};
+		$.get(baseURL+url,data,function(result){
+			if (result.status === 200) {
+				initData();
+				// 删除数据并且刷新数据，追加提示框
+				$(`
+					<div class="alert alert-info alert-dismissible" id='mySuccessAlert'>
+						<div>删除成功</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_success">~</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_success").trigger('click');
+				},2000);
+			}else{
+				$(`
+					<div class="alert alert-info alert-dismissible" id='myFailAlert'>
+						<div>
+							删除失败，接口异常
+						</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_fail">
+							！
+						</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_fail").trigger('click');
+				},2000);
+			}
+		});
+		$("#customerModal").modal("hide");
+
+	}
+</script>
+<style>
+	/*按钮和搜索*/
+	.cs_top .btns{
+		float: left;
+	}
+	.cs_top .navbar{
+		float: right;
+	}
+	/*模态框姓名*/
+	#name_err{
+		position: relative;
+	}
+	.name_err{
+		display: none;
+	}
+	#name_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*模态框密码*/
+	#password_err{
+		position: relative;
+	}
+	.password_err{
+		display: none;
+	}
+	#password_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*模态框手机号码*/
+	#telephone_err{
+		position: relative;
+	}
+	.telephone_err{
+		display: none;
+	}
+	#telephone_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*删除成功模态框*/
+	#mySuccessAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+	/*删除失败模态框*/
+	#myFailAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+</style>
+<div class="customer">
+ 	<br>
+	<!-- 添加、批量删除、导出按钮 -->
+	<div class="cs_top">
+		<div class="btns">
+			<button id="btn_add" class="btn btn-outline-primary">添加</button>
+			<button class="btn btn-outline-primary">批量导入</button>
+			<button id="btn_batchdel" class="btn btn-outline-primary">批量删除</button>
+		</div>
+		<nav class="navbar">
+  			<form class="form-inline">
+	    		<input class="form-control mr-sm-2" type="search" placeholder="请输入..." aria-label="Search">
+	    		<i class="iconfont icon-sousuo" id="btn_search"></i>
+  			</form>
+		</nav>
+	</div>
+	<br>
+	<!-- 表格数据 -->
+	<table class="table table-sm  table-hover table-bordered text-center" id="customer_tbl">
+	<!-- 表头 -->
+		<thead>
+			<tr>
+				<th>编号</th>
+				<th>姓名</th>
+				<th>密码</th>
+				<th>头像</th>
+				<th>手机</th>
+				<th>操作</th>
+			</tr>
+		</thead>	
+		<tbody></tbody>
+	</table>
+</div>
+
+<!-- 模态框 -->
+<!-- Modal -->
+<div class="modal fade " id="customerModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+	    <div class="modal-content">
+	    	<div class="modal-header">
+		        <h5 class="modal-title" id="exampleModalLabel">添加顾客信息</h5>
+		        <button type="button" class="close" onclick="closeModal.call(this)">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+	      	</div>
+	    	<div class="modal-body">
+				<!-- begin -->
+				<form id="customer_form">
+	
+					<!-- id 隐藏 为保存信息判断id是否存在用 -->
+					<div class="form-group row" hidden>
+						<label for="input_id"></label>
+					 	<div>
+					 		<input id="input_id" class="form-control" type="text" name="id"/>
+					 	</div>
+					</div>
+
+				<!-- 姓名 -->
+					<div class="form-group" id="name_err">
+						<label for="input_realname">姓名<span class="name_err" style="color:red">请输入至少一个字母</span></label>
+					 	<input id="input_realname" class="form-control" type="text" name="realname" placeholder="请输入名字" />
+					</div>
+					<!-- 密码 -->
+					<div class="form-group" id="password_err">
+						<label for="input_password">密码<span class="password_err" style="color:red">请输入6位以上密码</span></label>
+						<input id="input_password" class="form-control" type="text" name="password" placeholder="请输入密码" /> 	
+					</div>
+					<!-- 手机号 -->
+					<div class="form-group" id="telephone_err">
+						<label for="input_telephone">手机号<span class="telephone_err" style="color:red">请输入7~11位数字</span></label>
+					 	<input id="input_telephone" class="form-control" type="text" name="telephone" placeholder="请输入手机号码" />
+					</div>			
+				</form>
+				<!-- end -->
+			</div>
+			<!-- 取消、保存按钮 -->
+			<div class="modal-footer">
+		        <button type="button" class="btn btn-secondary" onclick="closeModal.call(this)">取消</button>
+		        <!-- <button id="btn_save" type="button" class="btn btn-primary" onclick="submitCustomer()">保存</button> -->
+		        <button id="btn_save" type="button" class="btn btn-primary">保存</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<!-- / Modal -->

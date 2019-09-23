@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>e洁家政服务</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="./bootstrap/css/bootstrap.css">
+	<!-- <link rel="stylesheet" href="https://cdn.bootcss.com/font-awesome/5.10.2/css/all.css"> -->
+	<link rel="stylesheet" type="text/css" href="http://at.alicdn.com/t/font_1396507_ooc7b9xf55.css">
+	<script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+	<script type="text/javascript" src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.js"></script>
+</head>
+<style>
+	.content{
+		position: absolute;
+		width: 100%;
+		top: 0;
+		bottom: 0;
+	}
+	#content_left{
+		line-height: 2em;
+	}
+	#content_left ul li{
+		font-size: 18px;
+	}
+	#content_right{
+		box-sizing: border-box;
+		padding: 10px;
+	}
+	.main_nav{
+		padding: 10px;
+	}
+	#wrapper{
+		background-color: #fff;
+		padding: 10px;
+		border-radius: 5px;
+		height: 500px;
+	}
+	footer{
+		height: 100px;
+		text-align: center;
+	}
+	.title{
+		color: blue;
+		font-size: 22px;
+		font-weight: bold;
+		line-height: 3em;
+		cursor: pointer;
+	}
+</style>
+
+<script>
+	window.onload = function(){
+		// 进入页面自动加载首页
+		$('.main_nav').css('display','none');
+		$("#wrapper").load("./pages/homepage.html");
+		//点击首页标题加载首页 
+		$('.title').on("click",function(){
+			$(".main_nav").css('display','none');
+			var url = $(this).attr("url");
+			$("nav>li").removeClass("current");
+			$("#wrapper").load(url);
+		})
+		// 点击列表是跳转页面
+		$(".nav").on("click","li",function(){
+			$('.main_nav').css('display','block');
+			switch($(this).find("a").text()){
+				case "顾客管理":
+					$("span#span_c").text("顾客管理");
+					break;
+				case "员工管理":
+					$("span#span_c").text("员工管理");
+					break;
+				case "分类管理":
+					$("span#span_c").text("分类管理");
+					break;
+				case "产品管理":
+					$("span#span_c").text("产品管理");
+					break;
+				/*case "订单管理":
+					$("span#span_c").text("订单管理");
+					break;*/
+				case "评论管理":
+					$("span#span_c").text("评论管理");
+					break;
+				case "地址管理":
+					$("span#span_c").text("地址管理");
+					break;
+			}
+			var url = $(this).attr("url");
+			console.log(url);
+			$("nav>li").removeClass("current");
+			$(this).addClass("current");
+			$("#wrapper").load(url);
+		})
+	}		
+</script>
+
+<body>
+	<div class="container-fluid">
+		<div class="row content">
+			<div id="content_left" class="col-2 bg-dark text-center">
+				<div class="title" url="./pages/homepage.html"><i class="iconfont icon-zhuye"></i> E洁家政服务平台</div>
+				<ul class="nav flex-column">
+					<li class="nav-item" url="./pages/customer.html">
+						<a class="nav-link"  href="javascript:void(0)"><i class="iconfont icon-icon-"></i>  顾客管理</a>
+					</li>
+					<li class="nav-item" url="./pages/waiter.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-icon-"></i>  员工管理</a>
+					</li>
+					<li class="nav-item" url="./pages/category.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-list"></i>  分类管理</a>
+					</li>
+					<li class="nav-item" url="./pages/product.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-shangpin"></i>  产品管理</a>
+					</li>
+					<!-- <li class="nav-item" url="./pages/order.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-dingdan"></i>  订单管理</a>
+					</li> -->
+					<li class="nav-item" url="./pages/comment.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-pingjia"></i>  评价管理</a>
+					</li>
+					<li class="nav-item" url="./pages/address.html">
+						<a class="nav-link" href="javascript:void(0)"><i class="iconfont icon-dizhi"></i>  地址管理</a>
+					</li>
+				</ul>
+			</div>
+			<div id="content_right" class="col bg-light">
+				<div class="main">
+					<div class="main_nav">
+						<span>主页</span>
+						<span>/</span>
+						<span id="span_c"></span>
+					</div>
+					<div id="wrapper">
+						
+					</div>
+				</div>
+				<footer>
+					<span>E洁家政后台管理系统</span>
+				</footer>
+			</div>
+		</div>
+	</div>
+	
+
+
+</body>
+</html>

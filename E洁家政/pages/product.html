@@ -1,0 +1,399 @@
+<link rel="stylesheet" type="text/css" href="../bootstrap/css/bootstrap.css">
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.js"></script>
+<script>
+	// 后台接口
+	var baseURL = "http://134.175.100.63:6677";
+
+	// 初始化数据
+	function initData(){
+		var url = baseURL+"/product/findAll";
+		$.get(url,function(result){
+			if (result.status === 200) {
+				// 先清空表单
+				$("#product_tbl>tbody").empty();
+				// 追加一个tr
+				result.data.forEach(function(item){
+					$(`<tr>
+					<td><input type="checkbox" value="`+item.id+`"></td>
+					<td>`+item.name+`</td>
+					<td>`+item.description+`</td>
+					<td>`+item.price+`</td>
+					<td>`+item.status+`</td>
+					<td>`+item.photo+`</td>
+
+					<td>
+						<a href="javascript:void(0);" class="btn_del">删除</a>
+						<a href="javascript:void(0);" class="btn_upd">修改</a>
+						<a href="javascript:void(0);" class="btn_msg">详情</a>
+					</td>
+				</tr>`).appendTo("#product_tbl>tbody");
+				});
+			}else{
+				alert("服务器接口报错！");
+			}
+		});
+	}
+	
+	$(function(){
+		// 加载数据
+		initData();
+		// 为添加按钮绑定事件
+		$("#btn_add").click(function(){
+			$("#productModal").modal("show");
+		});
+		// 监听模态框关闭 重置输入框信息
+		$("#productModal").on('hidden.bs.modal',function(e){
+			$(this).find("form")[0].reset();
+		});
+			// 保存分类管理信息
+	$("#btn_save").on('click',function(){
+		// 获取分类名称、数量及父id
+		var id = $("#product_form input[name=id]").val();
+
+		var name = $("#product_form input[name=name]").val();
+		var description = $("#product_form input[name=description]").val();
+		var price = $("#product_form input[name=price]").val();
+		var status = $("#product_form input[name=status]").val();
+		var photo = $("#product_form input[name=photo]").val();
+		// 正则判断
+		var pattern_name = /^\D{1,}/ig;
+		var pattern_description = /^\D{1,}/ig;
+		var pattern_price = /^\d{1,}/ig;
+		var name_res = pattern_name.test(name);
+		var description_res = pattern_description.test(description);
+		var price_res = pattern_price.test(price);
+		// 与后台交互
+		if (name_res && description_res && price_res) {
+			if (id) {
+					// 如果id存在，修改
+					var url = baseURL + "/product/saveOrUpdate";
+					var data = {
+						id:id,
+						name:name,
+						description:description,
+						price:price,
+						status:status,
+						photo:photo
+					}
+					$.post(url,data,function(result){
+						if (result.status === 200) {
+							alert("修改成功");
+							initData();
+						}else{
+							alert("修改失败");
+							initData();
+						}
+					});
+					// 保存后隐藏模态框
+					$("#productModal").modal("hide");
+				}else{
+					var url = baseURL + "/product/saveOrUpdate";
+					var data = {
+						name:name,
+						description:description,
+						price:price,
+						status:status,
+						photo:photo
+					} ;
+					$.post(url,data,function(result){
+						if (result.status === 200) {
+							alert("添加成功");
+							initData();
+						}else{
+							alert("添加失败");
+							initData();
+						}
+					});
+					$("#productModal").modal("hide");
+				}
+			}else{
+				// 表单验证
+				if (!name_res && !description_res && !price_res){
+					$('#name_err span').removeClass('name_err');
+					$('#description_err span').removeClass('description_err');
+					$('#price_err span').removeClass('price_err');
+				}
+				if (!name_res && !description_res){
+					$('#name_err span').removeClass('name_err');
+					$('#description_err span').removeClass('description_err');
+				}
+				if (!description_res && !price_res){
+					$('#description_err span').removeClass('description_err');
+					$('#price_err span').removeClass('price_err');
+				}
+				if (!name_res && !price_res){
+					$('#name_err span').removeClass('name_err');
+					$('#price_err span').removeClass('price_err');
+				}
+				if (!name_res){
+					$('#name_err span').removeClass('name_err');
+				}
+				if (!description_res){
+					$('#description_err span').removeClass('description_err');
+				}
+				if (!price_res){
+					$('#price_err span').removeClass('price_err');
+				}
+			}
+		event.preventDefault();
+	});
+
+		// 批量删除
+		$("#btn_batchdel").on("click",function(){
+			alert("确定批量删除？");
+			var ids = $(this).parents("tr").find("input").val();
+			batchdel(ids);
+			initData();
+		})
+		// 为删除、修改绑定事件
+		$("#product_tbl > tbody").on("click","a",function(){
+			// 判断获取名绑定事件
+			switch(this.className){
+				// 删除
+				case "btn_del":
+					alert("确定删除？");
+					var id = $(this).parents("tr").find("input").val();
+					delById(id);
+					break;
+					// 修改
+				case "btn_upd":
+					alert("确定修改？");
+					// 获取当前修改数据的信息
+					// 显示到模态框中
+						$("#productModal").modal("show");
+					var id = $(this).parents("tr").find("td").find("input").val();
+					// 根据id显示查询到的信息
+					var name = $(this).parents("tr").find("td:nth-child(2)").text();
+					var description = $(this).parents("tr").find("td:nth-child(3)").text();
+					var price = $(this).parents("tr").find("td:nth-child(4)").text();
+					var status = $(this).parents("tr").find("td:nth-child(5)").text();
+					// 将数据放到表单中
+					$("input[name=id]").val(id);
+					$("input[name=name]").val(name);
+					$("input[name=description]").val(description);
+					$("input[name=price]").val(price);
+					$("input[name=status]").val(status);
+					$("input[name=photo]").val(photo);	
+					break;
+			}
+			event.preventDefault();
+		})
+	})
+	// 关闭模态框
+	function closeModal(){
+		$(this).parents(".modal").modal("hide");
+	}
+	// 关闭提示框
+	function closeAlert(){
+		$(this).parents('.alert').remove();
+	}
+
+	// 批量删除
+	function batchdel(){
+		var url = baseURL + "/product/batchDelete";
+		var ids = $(':checkbox:checked').map(function(index,item){
+			return $(item).val();
+		}).toArray();
+		var data = '';
+		for(index in ids){
+			if (index == 0) {
+				data += 'ids=' + ids[index];
+			}else{
+				data += '&ids=' + ids[index];
+			}
+		}
+		$.post(url,data,function(result){
+			if (result.status === 200) {
+				alert(result.message);
+			}else{
+				alert("批量删除失败");
+			}
+		})
+	}
+	// 通过id删除信息
+	function delById(id){
+		var url = "/product/deleteById";
+		var data = {id:id};
+		$.get(baseURL+url,data,function(result){
+			if (result.status
+				 === 200) {
+				initData();
+				// 删除数据并且刷新数据，追加提示框
+				$(`
+					<div class="alert alert-info alert-dismissible" id='mySuccessAlert'>
+						<div>删除成功</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_success">~</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_success").trigger('click');
+				},2000);
+			}else{
+				$(`
+					<div class="alert alert-info alert-dismissible" id='myFailAlert'>
+						<div>
+							删除失败，接口异常
+						</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_fail">
+							！
+						</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_fail").trigger('click');
+				},2000);
+			}
+		});
+	}
+</script>
+	
+<style>
+	/*删除成功模态框*/
+	#mySuccessAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+	/*删除失败模态框*/
+	#myFailAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+	/*模态框商品名称*/
+	#name_err{
+		position: relative;
+	}
+	.name_err{
+		display: none;
+	}
+	#name_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*模态框商品描述*/
+	#description_err{
+		position: relative;
+	}
+	.description_err{
+		display: none;
+	}
+	#description_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*模态框商品价格*/
+	#price_err{
+		position: relative;
+	}
+	.price_err{
+		display: none;
+	}
+	#price_err span{
+		position: absolute;
+		right: 0;
+	}
+</style>
+
+<div class="product">
+ 	<br>
+	<!-- 添加、批量删除、导出按钮 -->
+	<div class="btns">
+		<button id="btn_add" class="btn btn-outline-primary">添加</button>
+		<button id="btn_batchdel" class="btn btn-outline-primary">批量删除</button>
+		<button class="btn btn-outline-primary">导出</button>
+	</div>
+	<br>
+	<!-- 表格数据 -->
+	<table class="table table-sm  table-hover table-bordered text-center" id="product_tbl">
+	<!-- 表头 -->
+		<thead>
+			<tr>
+				<th></th>
+				<th>商品名称</th>
+				<th>商品描述</th>
+				<th>价格</th>
+				<th>所属分类</th>
+				<th>照片</th>
+				<th>操作</th>
+			</tr>
+		</thead>	
+		<tbody></tbody>
+	</table>
+</div>
+
+<!-- 模态框 -->
+<!-- Modal -->
+<div class="modal fade " id="productModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+	    <div class="modal-content">
+	    	<div class="modal-header">
+		        <h5 class="modal-title" id="exampleModalLabel">添加商品信息</h5>
+		        <button type="button" class="close" onclick="closeModal.call(this)">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+	      	</div>
+	    	<div class="modal-body">
+				<!-- begin -->
+				<form id="product_form">
+					<!-- id 隐藏 为保存信息判断id是否存在用 -->
+					<div class="form-group row" hidden>
+						<label for="input_id"></label>
+					 	<div>
+					 		<input id="input_id" class="form-control" type="text" name="id"/>
+					 	</div>
+					</div>
+				<!-- 商品名称 -->
+					<div class="form-group" id="name_err">
+						<label for="input_name">商品名称<span class="name_err" style="color: red">请输入一个以上非数字字符</span></label>
+					 	<div>
+					 		<input id="input_name" class="form-control" type="text" name="name"/>
+					 	</div>
+					</div>
+					<!-- 商品描述 -->
+					<div class="form-group" id="description_err">
+						<label for="input_description">商品描述<span class="description_err" style="color: red">请输入一个以上非数字字符</span></label>
+						<div>
+							<input id="input_description" class="form-control" type="text" name="description"/> 
+						</div>
+					</div>
+					<!-- 商品价格 -->
+					<div class="form-group" id="price_err">
+						<label for="input_price">商品价格<span class="price_err" style="color: red">请输入一个或以上数字</span></label>
+					 	<div>
+					 		<input id="input_price" class="form-control" type="text" name="price"/>
+					 	</div>
+					</div>
+					<!-- 所属分类 -->
+					<div class="form-group">
+						<label for="input_status">所属分类</label>
+					 	<div>
+					 		<input id="input_status" class="form-control" type="text" name="status"/>
+					 	</div>
+					</div>	
+					<!-- 商品图片 -->
+					<div class="form-group">
+						<label for="input_photo">商品图片</label>
+					 	<div>
+					 		<input id="input_photo" class="form-control" type="file" name="photo"/>
+					 	</div>
+					</div>				
+				</form>
+				<!-- end -->
+			</div>
+			<!-- 取消、保存按钮 -->
+			<div class="modal-footer">
+		        <button type="button" class="btn btn-secondary" onclick="closeModal.call(this)">取消</button>
+		        <button id="btn_save" type="button" class="btn btn-primary">保存</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<!-- / Modal -->

@@ -1,0 +1,347 @@
+<link rel="stylesheet" type="text/css" href="../bootstrap/css/bootstrap.css">
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.js"></script>
+<script>
+	// 后台接口
+	var baseURL = "http://134.175.100.63:6677";
+
+	// 初始化数据
+	function initData(){
+		var url = baseURL+"/category/findAll";
+		$.get(url,function(result){
+			if (result.status === 200) {
+				// 先清空表单
+				$("#category_tbl>tbody").empty();
+				// 追加一个tr
+				result.data.forEach(function(item){
+					$(`<tr>
+					<td><input type="checkbox" value="`+item.id+`"></td>
+					<td>`+item.id+`</td>
+					<td>`+item.name+`</td>
+					<td>`+item.num+`</td>
+					<td>`+item.parentId+`</td>
+
+					<td>
+						<a href="javascript:void(0);" class="btn_del">删除</a>
+						<a href="javascript:void(0);" class="btn_upd">修改</a>
+					</td>
+				</tr>`).appendTo("#category_tbl>tbody");
+				});
+			}else{
+				alert("服务器接口报错！");
+			}
+		});
+	}
+	
+	$(function(){
+		// 加载数据
+		initData();
+		// 为添加按钮绑定事件
+		$("#btn_add").click(function(){
+			$("#categoryModal").modal("show");
+			$("#name_err span").addClass('name_err');
+			$("#password_err span").addClass('password_err');
+			$("#telephone_err span").addClass('telephone_err');
+		});
+		// 监听模态框关闭 重置输入框信息
+		$("#categoryModal").on('hidden.bs.modal',function(e){
+			$(this).find("form")[0].reset();
+		});
+
+		// 保存分类管理信息
+	$("#btn_save").on('click',function(){
+		// 获取分类名称、数量及父id
+		var id = $("#category_form input[name=id]").val();
+
+		var name = $("#category_form input[name=name]").val();
+		var num = $("#category_form input[name=num]").val();
+		var parentId = $("#category_form input[name=parentId]").val();
+		// 与后台交互
+		// var url = baseURL + "/category/saveOrUpdate";
+		// 正则判断
+		var pattern_name = /^\D{1,}/ig;
+		var pattern_num = /^\d{1,}/ig;
+		var name_res = pattern_name.test(name);
+		var num_res = pattern_num.test(num);
+		// 与后台交互
+		if (name_res && num_res) {
+			if (id) {
+					// 如果id存在，修改
+					var url = baseURL + "/category/saveOrUpdate";
+					var data = {
+						id:id,
+						name:name,
+						num:num,
+						parentId:parentId
+					}
+					$.post(url,data,function(result){
+						if (result.status === 200) {
+							alert("修改成功");
+							initData();
+						}else{
+							alert("修改失败");
+							initData();
+						}
+					});
+					// 保存后隐藏模态框
+					$("#categoryModal").modal("hide");
+				}else{
+					var url = baseURL + "/category/saveOrUpdate";
+					var data = {
+						name:name,
+						num:num,
+						parentId:parentId
+					} ;
+					$.post(url,data,function(result){
+						if (result.status === 200) {
+							alert("添加成功");
+							initData();
+						}else{
+							alert("添加失败");
+							initData();
+						}
+					});
+					$("#categoryModal").modal("hide");
+				}
+			}else{
+				// 表单验证
+				if (!name_res && !num_res){
+					$('#name_err span').removeClass('name_err');
+					$('#num_err span').removeClass('num_err');
+				}
+				if (!name_res){
+					$('#name_err span').removeClass('name_err');
+				}
+				if (!num_res){
+					$('#num_err span').removeClass('num_err');
+				}
+			}
+		event.preventDefault();
+	});
+
+		// 批量删除
+		$("#btn_batchdel").on("click",function(){
+			alert("确定批量删除？");
+			var ids = $(this).parents("tr").find("input").val();
+			batchdel(ids);
+			initData();
+		})
+
+		// 为删除、修改绑定事件
+		$("#category_tbl > tbody").on("click","a",function(){
+			// 判断获取名绑定事件
+			switch(this.className){
+				// 删除
+				case "btn_del":
+					alert("确定删除？");
+					var id = $(this).parents("tr").find("input").val();
+					delById(id);
+					break;
+					// 修改
+				case "btn_upd":
+					alert("确定修改？");
+					$("#categoryModal").modal("show");
+					// 获取当前修改数据的信息
+					var id = $(this).parents("tr").find("td").find("input").val();
+					// 根据id显示查询到的信息
+					var name = $(this).parents("tr").find("td:nth-child(3)").text();
+					var num = $(this).parents("tr").find("td:nth-child(4)").text();
+					// 将数据放到表单中
+					$("input[name=id]").val(id);
+					$("input[name=name]").val(name);
+					$("input[name=num]").val(num);
+					break;
+			}
+			event.preventDefault();
+		})
+	})
+	// 关闭模态框
+	function closeModal(){
+		$(this).parents(".modal").modal("hide");
+	}
+	// 关闭提示框
+	function closeAlert(){
+		$(this).parents('.alert').remove();
+	}
+	// 批量删除
+	function batchdel(){
+		var url = baseURL + "/category/batchDelete";
+		var ids = $(':checkbox:checked').map(function(index,item){
+			return $(item).val();
+		}).toArray();
+		var data = '';
+		for(index in ids){
+			if (index == 0) {
+				data += 'ids=' + ids[index];
+			}else{
+				data += '&ids=' + ids[index];
+			}
+		}
+		$.post(url,data,function(result){
+			if (result.status === 200) {
+				alert(result.message);
+			}else{
+				alert("批量删除失败");
+			}
+		})
+	}
+	// 通过id删除信息
+	function delById(id){
+		var url = "/category/deleteById";
+		var data = {id:id};
+		$.get(baseURL+url,data,function(result){
+			if (result.status
+				 === 200) {
+				initData();
+				// 删除数据并且刷新数据，追加提示框
+				$(`
+					<div class="alert alert-info alert-dismissible" id='mySuccessAlert'>
+						<div>删除成功</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_success">~</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_success").trigger('click');
+				},2000);
+			}else{
+				$(`
+					<div class="alert alert-info alert-dismissible" id='myFailAlert'>
+						<div>
+							删除失败，接口异常
+						</div>
+						<button class="close" onclick="closeAlert.call(this)" id="btn_fail">
+							！
+						</button>
+					</div>
+				`).prependTo($('body'));
+				// 2s后关闭提示框
+				setTimeout(function(){
+					$("#btn_fail").trigger('click');
+				},2000);
+			}
+		});
+	}
+</script>
+
+<style>
+	/*删除成功模态框*/
+	#mySuccessAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+	/*删除失败模态框*/
+	#myFailAlert{
+		width: 200px;
+		position: absolute;
+		right: 10%;
+		top: 10%;
+		z-index: 100;
+	}
+	/*模态框姓名*/
+	#name_err{
+		position: relative;
+	}
+	.name_err{
+		display: none;
+	}
+	#name_err span{
+		position: absolute;
+		right: 0;
+	}
+	/*模态框密码*/
+	#num_err{
+		position: relative;
+	}
+	.num_err{
+		display: none;
+	}
+	#num_err span{
+		position: absolute;
+		right: 0;
+	}
+</style>
+
+<div class="container-fluid">
+ 	<br>
+	<!-- 添加、批量删除、导出按钮 -->
+	<div class="btns">
+		<button id="btn_add" class="btn btn-outline-primary">添加</button>
+		<button id="btn_batchdel" class="btn btn-outline-primary">批量删除</button>
+		<button class="btn btn-outline-primary">导出</button>
+	</div>
+	<br>
+	<!-- 表格数据 -->
+	<table class="table table-sm  table-hover table-bordered text-center" id="category_tbl">
+	<!-- 表头 -->
+		<thead>
+			<tr>
+				<th></th>
+				<th>编号</th>
+				<th>分类名称</th>
+				<th>数量</th>
+				<th>类型</th>
+				<th>操作</th>
+			</tr>
+		</thead>	
+		<tbody></tbody>
+	</table>
+</div>
+
+<!-- 模态框 -->
+<!-- Modal -->
+<div class="modal fade " id="categoryModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+	    <div class="modal-content">
+	    	<div class="modal-header">
+		        <h5 class="modal-title" id="exampleModalLabel">添加分类信息</h5>
+		        <button type="button" class="close" onclick="closeModal.call(this)">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+	      	</div>
+	    	<div class="modal-body">
+				<!-- begin -->
+				<form id="category_form">
+					<!-- id 隐藏 为保存信息判断id是否存在用 -->
+					<div class="form-group" hidden>
+						<label for="input_id"></label>
+					 	<div>
+					 		<input id="input_id" class="form-control" type="text" name="id"/>
+					 	</div>
+					</div>
+				<!-- 分类名称 -->
+					<div class="form-group" id="name_err">
+						<label for="input_name">分类名称<span class="name_err" style="color: red">请输入一个以上非数字字符</span></label>
+					 	<div>
+					 		<input id="input_name" class="form-control" type="text" name="name"/>
+					 	</div>
+					</div>
+					<!-- 数量 -->
+					<div class="form-group" id="num_err">
+						<label for="input_num">数量<span class="num_err" style="color: red">请输入数字</span></label>
+						<div>
+							<input id="input_num" class="form-control" type="text" name="num"/> 
+						</div>
+					</div>
+					<!-- 父ID -->
+					<div class="form-group">
+						<label for="input_parentId">父ID</label>
+					 	<div>
+					 		<input id="input_parentId" class="form-control" type="text" name="parentId"/>
+					 	</div>
+					</div>			
+				</form>
+				<!-- end -->
+			</div>
+			<!-- 取消、保存按钮 -->
+			<div class="modal-footer">
+		        <button type="button" class="btn btn-secondary" onclick="closeModal.call(this)">取消</button>
+		        <button id="btn_save" type="button" class="btn btn-primary">保存</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<!-- / Modal -->
